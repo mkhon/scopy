@@ -1,0 +1,2 @@
+# scopy
+by-sector copy
