@@ -13,12 +13,15 @@ def find_disk(disk):
     if re.match(r"/dev/", disk):
         return disk
 
+    notified = False
     while True:
         lsblk_json = subprocess.check_output(["lsblk", "-JOd"])
         for d in json.loads(lsblk_json)["blockdevices"]:
             if d["model"] == disk:
                 return "/dev/{}".format(d["name"])
-        print("SCOPY: Waiting for device {} to appear".format(disk))
+        if not notified:
+            print("SCOPY: Waiting for device {} to appear...".format(disk))
+            notified = True
         time.sleep(1)
 
 def each_chunk(stream, separator):
