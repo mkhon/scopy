@@ -9,20 +9,27 @@ import subprocess
 import sys
 import time
 
+def get_disks():
+    lsblk_json = subprocess.check_output(["lsblk", "-JOd"])
+    return json.loads(lsblk_json)["blockdevices"]
+
 def find_disk(disk):
     if re.match(r"/dev/", disk):
         return disk
 
     notified = False
     while True:
-        lsblk_json = subprocess.check_output(["lsblk", "-JOd"])
-        for d in json.loads(lsblk_json)["blockdevices"]:
+        for d in get_disks():
             if d["model"] == disk:
                 return "/dev/{}".format(d["name"])
         if not notified:
             print("SCOPY: Waiting for device {} to appear...".format(disk))
             notified = True
         time.sleep(1)
+
+def list_disks():
+    for d in get_disks():
+        print("/dev/{}: {}".format(d["name"], d["model"]))
 
 def each_chunk(stream, separator):
     buffer = b''
@@ -95,7 +102,7 @@ def usage(exitcode):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hl:o:", ["help", "limit=", "offset="])
+        opts, args = getopt.getopt(sys.argv[1:], "hLl:o:", ["help", "limit=", "offset="])
     except getopt.GetoptError as err:
         print(err)
         usage(2)
@@ -105,6 +112,10 @@ def main():
     for o, a in opts:
         if o in ("-h", "--help"):
             usage(0)
+        if o in ("-L", "--llist"):
+            list_disks()
+            sys.exit(0)
+
         if o in ("-l", "--limit"):
             limit = int(a)
         elif o in ("-o", "--offset"):
